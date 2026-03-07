@@ -125,3 +125,4 @@ async function removeAppointment(req,res){
         res.status(500).json({error:err});
     }
 }
+module.exports={getPatientById,getPatients,deletePatient,bookAppointment,removeAppointment,updatePatient};
