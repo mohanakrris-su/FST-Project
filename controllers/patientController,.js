@@ -99,14 +99,25 @@ async function bookAppointment(req,res){
 async function removeAppointment(req,res){
     try{    
     const appointmentId=req.params.appId;
-        await Appointment.findByIdAndDelete(appointmentId);
-        const payment=await Payment.findOne(appointmentId);
+        const app=await Appointment.findById(appointmentId)
+        if(!app)
+        {
+            res.status(500).json({err:"appointment not found"});
+        }
+        const queueId= app.queueId;
+        const payment=await Payment.findById(appointmentId);
         if(!payment)
         {
             res.json({msg:"failed"});
         }
         payment.status="REFUNDED";
+        await Queue.updateOne({_id:queueId},{
+            $pull:{
+                waiting:appointmentId }
+            })
         await payment.save();
+        app.status="CANCELLED";
+        await app.save();
         res.json({msg:"deleted successfully"});
     }
     catch(err)
