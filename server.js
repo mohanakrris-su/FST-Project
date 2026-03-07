@@ -2,9 +2,11 @@ const mongoose = require("mongoose");
 const express=require("express");
 const Patient=require("./models/Patient.js");
 const app=express();
+const PatientRoutes=require('./routes/patientRoutes.js')
 mongoose.connect("mongodb://127.0.0.1:27017/SmartCareQ")
 .then(()=>console.log("MongoDB Connected"))
 .catch(err=>console.log(err));
+app.use("/api/patients",PatientRoutes);
 app.get("/add",(req,res)=>{
     const newPatient = new Patient({
     name: "Joseph Dominic",
