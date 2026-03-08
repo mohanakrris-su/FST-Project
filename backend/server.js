@@ -3,6 +3,7 @@ const express=require("express");
 const cors=require("cors");
 const jwt=require("jsonwebtoken");
 const passport=require("passport");
+require("dotenv").config();
 const cookieParser=require("cookie-parser");
 const GoogleStrategy=require("passport-google-oauth20").Strategy;
 const app=express();
@@ -15,8 +16,8 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json());
 passport.use(new GoogleStrategy({
- clientID:"313399725939-n1k2dunrm23mfuvuqd0eqehlt5ekut2k.apps.googleusercontent.com",
- clientSecret:"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",
+clientID: process.env.GOOGLE_CLIENT_ID,
+clientSecret: process.env.GOOGLE_CLIENT_SECRET,
  callbackURL:"http://localhost:3000/auth/google/callback"
 },async (accessToken,refreshToken,profile,done)=>{
 
