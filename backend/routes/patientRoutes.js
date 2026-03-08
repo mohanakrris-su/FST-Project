@@ -6,6 +6,7 @@ route.post("/updatePatients/:id",exp.updatePatient)
 route.get("/deletePatients/:id",exp.deletePatient)
 route.post("/bookAppointment",exp.bookAppointment)
 route.post("/removeAppointment/:appId",exp.removeAppointment)
+route.get("/getPosition/:appId",exp.getPosition);
 route.get("/getQr/:appId",exp.getQrCode);
 route.get("/addRecord",exp.addRecord);
 route.get("/getReportsToday/:pId",exp.getTodayReports);

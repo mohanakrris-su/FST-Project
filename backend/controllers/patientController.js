@@ -179,8 +179,6 @@ async function getPosition(req, res)
         if(!q)
             return res.status(404).json({error:"queue invalid for the corresponding appId in the db"});
 
-          if(!q.currentPatient&&!q.waitingPatient&&!q.skippedPatient)
-            return res.status(200).json({msg:"no patient in the queue"});
         if(q.currentPatient && q.currentPatient.toString() === appId)
             return res.json({appId,currentPatient:true,position:0});
 
@@ -280,4 +278,4 @@ async function getBookings(req,res)
         res.status(500).json({error:err.message});
     }
 }
-module.exports={getPatientById,getPatients,deletePatient,bookAppointment,removeAppointment,updatePatient,getPosition,getQrCode,getTodayReports,getReports,addRecord,getBookings};
+module.exports={getPatientById,getPatients,deletePatient,bookAppointment,removeAppointment,updatePatient,getPosition,getQrCode,getTodayReports,getReports,addRecord,getBookings,getPosition};
