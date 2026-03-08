@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
-
+function getTodayString() {
+  return new Date().toISOString().split("T")[0];
+}
 const queueSchema = new mongoose.Schema({
   hospitalId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -20,8 +22,9 @@ const queueSchema = new mongoose.Schema({
   },
 
   date: {
-    type: Date,
-    required: true
+    type: String,
+    required: true,
+    default: getTodayString 
   },
 
   status: {

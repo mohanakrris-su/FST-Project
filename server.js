@@ -1,34 +1,52 @@
 const mongoose = require("mongoose");
 const express=require("express");
-const Patient=require("./models/Patient.js");
+const cors=require("cors");
+const jwt=require("jsonwebtoken");
+const passport=require("passport");
+const cookieParser=require("cookie-parser");
+const GoogleStrategy=require("passport-google-oauth20").Strategy;
 const app=express();
-const PatientRoutes=require('./routes/patientRoutes.js')
-mongoose.connect("mongodb://127.0.0.1:27017/SmartCareQ")
+app.use(passport.initialize());
+const Patient=require("./models/Patient.js");
+app.use(cors({
+ origin:"http://localhost:5500",
+ credentials:true
+}));
+app.use(cookieParser());
+app.use(express.json());
+passport.use(new GoogleStrategy({
+ clientID:"313399725939-n1k2dunrm23mfuvuqd0eqehlt5ekut2k.apps.googleusercontent.com",
+ clientSecret:"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",
+ callbackURL:"http://localhost:3000/auth/google/callback"
+},async (accessToken,refreshToken,profile,done)=>{
+
+ const email=profile.emails?.[0]?.value;
+ const user=await Patient.findOne({email});
+
+ if(!user){
+   const user=await new Patient({
+     password:"########",
+     name:profile.displayName,
+     email,
+     gender:"male",
+     age:24,
+     phone:"+917708436256"
+   });
+   console.log(user);
+   await user.save();
+    return done(null,user);
+ }
+
+ return done(null,user);
+}));
+const route=require('./routes/patientRoutes.js');
+const authRouter=require("./routes/authRoutes.js");
+mongoose.connect("mongodb://127.0.0.1:27017/scq")
 .then(()=>console.log("MongoDB Connected"))
 .catch(err=>console.log(err));
-app.use("/api/patients",PatientRoutes);
-app.get("/add",(req,res)=>{
-    const newPatient = new Patient({
-    name: "Joseph Dominic",
-    phone: "+9198765210",
-    email: "joseph@gmail.com",
-    password: "mypassword123",
-    age: 21,
-    gender: "male",
-    role: "patient"
-});
-newPatient.save().then(()=>{console.log("patient save succuessfully")}).catch((err)=>{
-    console.log("error",err);
-});
-res.send("successfully");
-});
-app.get("/get",(req,res)=>{
-    Patient.find()
-.then((data) => {
-    res.json(data)
-;})
-.catch((err) => {
-    res.json(err);
-});
-})
+app.use("/api/patients",route);
+app.use("/auth",authRouter);
 app.listen(3000);
+const today = new Date().toISOString().split("T")[0]; 
+console.log(today);
+module.exports=passport;

@@ -5,12 +5,6 @@ const doctorSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-
-  doctorId: {
-    type: String,
-    unique: true
-  },
-
   hospitalId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Hospital",
@@ -51,12 +45,5 @@ const doctorSchema = new mongoose.Schema({
   }
 });
 
-doctorSchema.pre("save", async function (next) {
-  if (!this.doctorId) {
-    const count = await mongoose.model("Doctor").countDocuments();
-    this.doctorId = "DOC" + String(count + 1).padStart(4, "0");
-  }
-  next();
-});
 
 module.exports = mongoose.model("Doctor", doctorSchema);
