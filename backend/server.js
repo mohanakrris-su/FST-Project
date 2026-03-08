@@ -7,6 +7,9 @@ require("dotenv").config();
 const cookieParser=require("cookie-parser");
 const GoogleStrategy=require("passport-google-oauth20").Strategy;
 const app=express();
+app.get("/.well-known/appspecific/com.chrome.devtools.json",(req,res)=>{
+    res.json({});
+});
 app.use(passport.initialize());
 const Patient=require("./models/Patient.js");
 app.use(cors({

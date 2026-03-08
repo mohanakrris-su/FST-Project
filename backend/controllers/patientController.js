@@ -21,10 +21,6 @@ catch(err)
     res.status(500).json({error:err});
 }
 };
-async function loginPatient(req,res)
-{
-    
-}
 async function getPatients(req,res){
     try{
     const patients=await Patient.find();
@@ -169,4 +165,119 @@ async function removeAppointment(req,res){
         res.status(500).json({error:err});
     }
 }
-module.exports={getPatientById,getPatients,deletePatient,bookAppointment,removeAppointment,updatePatient};
+async function getPosition(req, res)
+{
+    try
+    {
+        const appId = req.params.appId;
+
+        const app = await Appointment.findById(appId);
+        if(!app)
+            return res.status(404).json({err:"appointment not found"});
+
+        const q = await Queue.findById(app.queueId);
+        if(!q)
+            return res.status(404).json({error:"queue invalid for the corresponding appId in the db"});
+
+          if(!q.currentPatient&&!q.waitingPatient&&!q.skippedPatient)
+            return res.status(200).json({msg:"no patient in the queue"});
+        if(q.currentPatient && q.currentPatient.toString() === appId)
+            return res.json({appId,currentPatient:true,position:0});
+
+        const idx = q.waiting.findIndex((i)=>i.toString()===appId);
+        if(idx!==-1)
+            return res.json({appId,currentPatient:false,position:idx+1,waitingPatient:true});
+
+        const idx1 = q.skipped.findIndex((i)=>i.toString()===appId);
+        if(idx1!==-1)
+            return res.json({appId,currentPatient:false,position:idx1+1,skippedPatient:true});
+
+        return res.status(404).json({error:"cant able to find the appointment in the queue"});
+    }
+    catch(err)
+    {
+        res.status(500).json({error:err.message});
+    }
+}
+async function getQrCode(req,res)
+{
+    const appId=req.params.appId;
+    const app=await Appointment.findById(appId);
+    if(!app)
+            return res.status(400).json({msg:"queue not found"});
+    const qrString=app.qrCode;
+    if(qrString=="")
+            return res.json({qrCode:false});
+    res.json({qrCode:true,qr:qrString});
+}
+async function addRecord(req,res)
+{
+    try
+    {
+        const {pId,fileUrl}=req.body;
+        const p=await Patient.findById(pId);
+        if(!p)
+            return res.status(404).json({msg:"patient not found"});
+        p.reports.push({fileUrl});
+        await p.save();
+        res.json({msg:"record added successfully",fileUrl});
+    }
+    catch(err)
+    {
+        res.status(500).json({error:err.message});
+    }
+}
+async function getTodayReports(req,res)
+{
+    try
+    {
+        const pId=req.params.pId;
+        const p=await Patient.findById(pId);
+        if(!p)
+            return res.status(404).json({msg:"patient not found"});
+        const today=new Date();
+        const startOfDay=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+        const endOfDay=new Date(today.getFullYear(),today.getMonth(),today.getDate()+1);
+        const reports=p.reports.filter((r)=>
+            r.uploadedAt>=startOfDay && r.uploadedAt<endOfDay
+        );
+        res.json({patientId:pId,todayReports:reports});
+    }
+    catch(err)
+    {
+        res.status(500).json({error:err.message});
+    }
+}
+async function getReports(req,res)
+{
+ try
+ {   const pId=req.params.pId;
+    const p=await Patient.findById(pId);
+    if(!p)
+        return res.status(404).json({msg:"patient not found"});
+    const records=p.reports;
+    res.json({reports:records});
+}
+catch(err)
+{
+    res.status(500).json({error:err})
+}
+}
+async function getBookings(req,res)
+{
+    try{
+        const pId = req.params.pId;
+        const app = await Appointment.find({ patientId: pId });
+        if(app.length === 0)
+        {
+            return res.json({msg:"no appointments before"});
+        }
+        const app1 = app.map(a => ({appointmentId: a._id,status: a.status}));
+        res.json({records:app1});
+    }
+    catch(err)
+    {
+        res.status(500).json({error:err.message});
+    }
+}
+module.exports={getPatientById,getPatients,deletePatient,bookAppointment,removeAppointment,updatePatient,getPosition,getQrCode,getTodayReports,getReports,addRecord,getBookings};

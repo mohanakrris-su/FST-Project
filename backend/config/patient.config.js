@@ -57,18 +57,14 @@ if(u.password!=password)
     return res.status(404).json({msg:"password incorrect"});
 }
  const payload={role:"patient",email:u.email};
-
  const at=createAToken(payload);
  const rt=createRToken(payload);
-
  res.cookie("refreshToken",rt,{httpOnly:true,sameSite:"strict",secure:false});
-
  res.json({accessToken:at});
 });
 app.get("/auth/google",
  passport.authenticate("google",{scope:["profile","email"]})
 );
-
 app.get("/auth/google/callback",
  passport.authenticate("google",{session:false}),
  (req,res)=>{
