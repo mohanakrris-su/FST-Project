@@ -6,7 +6,7 @@ async function addDoctor(req,res)
            const d=await Doctor.findOne({id});
            if(d)
                return res.status(404).json({msg:"already exists"});
-           const doctor=await new Doctor({name,phone,email,password,age,gender});
+           const doctor=new Doctor({name,id,phone,email,password,age,gender,hospitalId,departmentId});
         await doctor.save();
         res.json({msg:"registered succesfully"});
    }
@@ -46,3 +46,4 @@ async function deleteDoctor(req,res)
         res.status(500).json({error:err});
     }
 }
+module.exports={addDoctor,deleteDoctor,updateDoctor};

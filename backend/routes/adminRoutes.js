@@ -1,0 +1,13 @@
+const { CreateDept, getDepts } = require("../controllers/deptController");
+const { addDoctor, updateDoctor, deleteDoctor } = require("../controllers/doctorController");
+const { deleteStaff, updateStaff, addStaff } = require("../controllers/staffController");
+const Route=require("express").Router();
+Route.post("/addDept",CreateDept);
+Route.get("/getDept",getDepts);
+Route.post("/addDoctor",addDoctor);
+Route.post("/updateDoctor/:did",updateDoctor);
+Route.get("/deleteDoctor/:did",deleteDoctor);
+Route.post("/addStaff",addStaff);
+Route.post("/updateStaff/:sid",updateStaff);
+Route.get("/deleteStaff/:sid",deleteStaff);
+module.exports=Route;

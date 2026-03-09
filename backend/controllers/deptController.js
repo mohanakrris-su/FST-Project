@@ -10,6 +10,7 @@ async function CreateDept(req,res)
     }
     const dept=await new Department({hospitalId,name});
     await dept.save();
+    res.json({msg:"successully added",dept})
     }
     catch(err)
     {
@@ -27,3 +28,4 @@ async function getDepts(req,res)
         res.status(500).json({error:err});
     }
 }
+module.exports={CreateDept,getDepts};

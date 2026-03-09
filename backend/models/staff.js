@@ -8,7 +8,32 @@ const staffSchema = new mongoose.Schema({
 
   staffId: {
     type: String,
+    unique: true,
+    required:true
+  },
+    email: {
+    type: String,
+    required: true,
+    lowercase: true,
+    trim: true,
     unique: true
+  },
+
+  password: {
+    type: String,
+    required: true
+  },
+
+  age: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+
+  gender: {
+    type: String,
+    enum: ["male", "female", "other"],
+    required: true
   },
 
   hospitalId: {
@@ -22,7 +47,13 @@ const staffSchema = new mongoose.Schema({
     ref: "Department",
     required: true
   },
-
+   phone: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    match: [/^\+?[0-9]{10,15}$/, "Enter a valid phone number"]
+  },
   role: {
     type: String,
     default:"staff"
@@ -38,13 +69,4 @@ const staffSchema = new mongoose.Schema({
     default: Date.now
   }
 });
-
-staffSchema.pre("save", async function (next) {
-  if (!this.staffId) {
-    const count = await mongoose.model("Staff").countDocuments();
-    this.staffId = "STF" + String(count + 1).padStart(4, "0");
-  }
-  next();
-});
-
 module.exports = mongoose.model("Staff", staffSchema);
