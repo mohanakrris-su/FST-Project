@@ -14,7 +14,7 @@ async function registerPatient(req,res){
             phone,email,password,age,gender
         });
      await patient.save();
-     res.json({msg:"registered already"});
+     res.json({msg:"registered successfully"});
 }
 catch(err)
 {
