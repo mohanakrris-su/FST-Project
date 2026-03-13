@@ -8,7 +8,9 @@
     "mongoose": "^9.2.4",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "razorpay": "^2.9.6",
+    "twilio": "^5.12.2"
   },
   "name": "scq",
   "version": "1.0.0",

@@ -52,6 +52,27 @@ mongoose.connect("mongodb://127.0.0.1:27017/scq")
 app.use("/api/patients",route);
 app.use("/auth",authRouter);
 app.use("/api/admin",adminRouter);
+const Razorpay=require("razorpay")
+const razorpay = new Razorpay({
+    key_id: "rzp_test_SGR9qfZK8ypm0h",
+    key_secret: "ZCM6XIR3X1VTaCFRaAW2pEBv"
+});
+app.post("/create-order", async (req, res) => {
+
+    const options = {
+        amount: 10000,
+        currency: "INR",
+        receipt: "receipt_order_1"
+    };
+
+    try {
+        const order = await razorpay.orders.create(options);
+        console.log("kjwe");
+        res.json(order);
+    } catch (err) {
+        res.status(500).send(err);
+    }
+});
 app.listen(3000);
 const today = new Date().toISOString().split("T")[0]; 
 console.log(today);

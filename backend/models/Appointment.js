@@ -44,6 +44,9 @@ const appointmentSchema = new mongoose.Schema({
   bookedAt: {
     type: Date,
     default: Date.now
+  },
+  notes:{
+    type:String
   }
 });
 

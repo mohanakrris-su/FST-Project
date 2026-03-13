@@ -1,4 +1,5 @@
-const exp=require("../controllers/patientController.js")
+const exp=require("../controllers/patientController.js");
+const { makePayment, createOrder, getPayment } = require("../controllers/paymentController.js");
 const route=require('express').Router();
 route.get("/getPatients",exp.getPatients)
 route.get("/getPatientById/:id",exp.getPatientById)
@@ -12,4 +13,15 @@ route.get("/addRecord",exp.addRecord);
 route.get("/getReportsToday/:pId",exp.getTodayReports);
 route.get("/getReports/:pId",exp.getReports);
 route.get("/getBookings/:pId",exp.getBookings);
+route.post("/payment",makePayment);
+route.post("/create-order",createOrder);
+route.get("/getPatientHistory/:patientId",exp.getPatientHistory);
+route.get("/sendSms",exp.sms);
+route.get("/rejoin/Queue/:appointmentId",exp.rejoinQueue);
+route.get("/nextPatient/:queueId",exp.nextPatient);
+route.get("/skipAppointment/:appointmentId",exp.skipAppointment);
+route.get("/getAppointments/patient/:patientId",exp.getAppointmentsByPatient);
+route.get("/getAppointment/:appointmentId",exp.getAppointment);
+route.get("/getAppointmentQr/:appointmentId",exp.getAppointmentQR);
+route.get("/getpaymentById/:paymentId",getPayment);
 module.exports=route;
