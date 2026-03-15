@@ -32,6 +32,29 @@ async function updateDoctor(req,res)
        res.status(500).json({error:err});
    }
 }
+async function getDoctors(req,res){
+    try{
+    const doctors=await Doctor.find();
+        res.json({doctors});
+    }
+    catch(error)
+    {
+        res.status(500).json({error:error.message});
+    }
+}
+async function getDoctorById(req,res){
+    try{
+    const id=req.params.id;
+    const d=await Doctor.findById(id);
+    if(!d)
+            return res.status(404).json({found:false,msg:"not found"});
+    res.json({d,found:true});
+    }
+    catch(error)
+    {
+        res.status(500).json({error:error.message});
+    }
+}
 async function deleteDoctor(req,res)
 {
     try{
@@ -242,4 +265,4 @@ catch(err)
 }
 
 
-module.exports={addDoctor,deleteDoctor,updateDoctor,getDoctorsByDept,addNotes,markAsComplete,createQueue,getStatusAndCapacity,updateDoctorStatus,setCapacity};
+module.exports={addDoctor,deleteDoctor,updateDoctor,getDoctorsByDept,addNotes,markAsComplete,createQueue,getStatusAndCapacity,updateDoctorStatus,setCapacity,getDoctors,getDoctorById};

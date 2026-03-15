@@ -32,8 +32,7 @@ async function getQueueStatus(req,res)
 async function verifyPatient(req,res)
 {
     try{
-    const queueId=req.params.queueId;
-    const appointmentId=req.params.appointmentId;
+    const {queueId,appointmentId}=req.body;
     const q=await Queue.findById(queueId);
     if(!q)
         return res.status(404).json({msg:"queue not found",found:false});

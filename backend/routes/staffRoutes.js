@@ -1,0 +1,13 @@
+const { verifyPatient, insertPatient, reorderQueue, pauseQueue, resumeQueue, getAssignedQueues } = require("../controllers/queueController");
+const { updateStaff, getStaffById, getStaffs } = require("../controllers/staffController");
+const route=require("express").Router();
+route.get("/staff/:staffId",getStaffById);
+route.get("/staffs",getStaffs);
+route.post("/updateStaff/:staffId",updateStaff);
+route.post("/verifyPatient",verifyPatient);
+route.get("/insertPatient/:queueId",insertPatient);
+route.get("/reorderQueue/:queueId",reorderQueue);
+route.get("/pauseQueue/:queueId",pauseQueue);
+route.get("/resumeQueue/:queueId",resumeQueue);
+route.get("/getAssignedQueues/:staffId",getAssignedQueues);
+module.exports=route;

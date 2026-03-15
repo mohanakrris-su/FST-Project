@@ -48,4 +48,27 @@ async function deleteStaff(req,res)
         res.status(500).json({error:err});
     }
 }
-module.exports={addStaff,updateStaff,deleteStaff};
+async function getStaffs(req,res){
+    try{
+    const staffs=await Staff.find();
+        res.json({staffs});
+    }
+    catch(error)
+    {
+        res.status(500).json({error:error.message});
+    }
+}
+async function getStaffById(req,res){
+    try{
+    const id=req.params.id;
+    const staff=await Staff.findById(id);
+    if(!staff)
+            return res.status(404).json({found:false,msg:"not found"});
+    res.json({staff,found:true});
+    }
+    catch(error)
+    {
+        res.status(500).json({error:error.message});
+    }
+}
+module.exports={addStaff,updateStaff,deleteStaff,getStaffById,getStaffs};

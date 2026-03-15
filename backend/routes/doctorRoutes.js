@@ -1,0 +1,12 @@
+const { getDoctors, getDoctorById, addNotes, markAsComplete, createQueue, getStatusAndCapacity, updateDoctorStatus, setCapacity, getDoctorsByDept } = require("../controllers/doctorController");
+const route=require("express").Router();
+route.get("/doctors",getDoctors);
+route.get("/doctor/:doctorId",getDoctorById);
+route.post("/addNotes/:appointmentId",addNotes);
+route.get("/markAsComplete/:queueId",markAsComplete);
+route.post("/createQueue",createQueue);
+route.get("/getStatusCapacity/:doctorId",getStatusAndCapacity);
+route.post("/updateStatus/:doctorId",updateDoctorStatus);
+route.post("/setCapacity",setCapacity);
+route.get("/getDoctors/Dept/:deptId",getDoctorsByDept);
+module.exports=route;

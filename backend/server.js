@@ -42,12 +42,16 @@ clientSecret: process.env.GOOGLE_CLIENT_SECRET,
 const route=require('./routes/patientRoutes.js');
 const authRouter=require("./routes/authRoutes.js");
 const adminRouter=require("./routes/adminRoutes.js");
+const doctorRouter=require("./routes/doctorRoutes.js");
+const staffRouter=require("./routes/staffRoutes.js");
 mongoose.connect("mongodb://127.0.0.1:27017/scq")
 .then(()=>console.log("MongoDB Connected"))
 .catch(err=>console.log(err));
 app.use("/api/patients",route);
 app.use("/auth",authRouter);
 app.use("/api/admin",adminRouter);
+app.use("/api/staff",staffRouter);
+app.use("/api/doctor",doctorRouter);
 app.listen(3000);
 const today = new Date().toISOString().split("T")[0]; 
 console.log(today);
