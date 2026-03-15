@@ -11,10 +11,8 @@ async function createOrder(req, res) {
         currency: "INR",
         receipt: "receipt_order_1"
     };
-
     try {
         const order = await razorpay.orders.create(options);
-        console.log("kjwe");
         res.json(order);
     } catch (err) {
         res.status(500).send(err);
@@ -44,9 +42,9 @@ async function getPayment(req, res) {
         const paymentId = req.params.paymentId;
         const payment = await Payment.findById(paymentId);
         if (!payment)
-            return res.status(404).json({ msg: "Payment not found" });
+            return res.status(404).json({ msg: "Payment not found",found:false});
 
-        res.status(200).json(payment);
+        res.status(200).json({payment,found:true});
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

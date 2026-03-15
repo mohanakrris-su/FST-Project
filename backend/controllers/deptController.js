@@ -10,7 +10,7 @@ async function CreateDept(req,res)
     }
     const dept=await new Department({hospitalId,name});
     await dept.save();
-    res.json({msg:"successully added",dept})
+    res.json({msg:"successully added",dept,already:false});
     }
     catch(err)
     {
@@ -21,7 +21,7 @@ async function getDepts(req,res)
 {
     try{
         const depts=await Department.find();
-        res.json({departments:depts});
+        res.json({departments:depts,found:true});
     }
     catch(err)
     {

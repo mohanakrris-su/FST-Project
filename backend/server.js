@@ -3,15 +3,12 @@ const express=require("express");
 const cors=require("cors");
 const jwt=require("jsonwebtoken");
 const passport=require("passport");
+const Patient=require("./models/Patient.js");
 require("dotenv").config();
 const cookieParser=require("cookie-parser");
 const GoogleStrategy=require("passport-google-oauth20").Strategy;
 const app=express();
-app.get("/.well-known/appspecific/com.chrome.devtools.json",(req,res)=>{
-    res.json({});
-});
 app.use(passport.initialize());
-const Patient=require("./models/Patient.js");
 app.use(cors({
  origin:"http://localhost:5500",
  credentials:true
@@ -40,7 +37,6 @@ clientSecret: process.env.GOOGLE_CLIENT_SECRET,
    await user.save();
     return done(null,user);
  }
-
  return done(null,user);
 }));
 const route=require('./routes/patientRoutes.js');
@@ -52,27 +48,6 @@ mongoose.connect("mongodb://127.0.0.1:27017/scq")
 app.use("/api/patients",route);
 app.use("/auth",authRouter);
 app.use("/api/admin",adminRouter);
-const Razorpay=require("razorpay")
-const razorpay = new Razorpay({
-    key_id: "rzp_test_SGR9qfZK8ypm0h",
-    key_secret: "ZCM6XIR3X1VTaCFRaAW2pEBv"
-});
-app.post("/create-order", async (req, res) => {
-
-    const options = {
-        amount: 10000,
-        currency: "INR",
-        receipt: "receipt_order_1"
-    };
-
-    try {
-        const order = await razorpay.orders.create(options);
-        console.log("kjwe");
-        res.json(order);
-    } catch (err) {
-        res.status(500).send(err);
-    }
-});
 app.listen(3000);
 const today = new Date().toISOString().split("T")[0]; 
 console.log(today);

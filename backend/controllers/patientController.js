@@ -4,24 +4,22 @@ const Appointment = require("../models/Appointment.js");
 const Payment = require("../models/Payment.js");
 const QRCode = require("qrcode");
  const twilio=require("twilio");
-
 const client=twilio(
 "ACd063c95660a15649624afcf15da90467",
 "30ab7f715687ba54c5b6b5069fd405f7"
 );
-
 async function registerPatient(req,res){
    try{
     const {name,phone,email,password,age,gender}=req.body;
         const p=await Patient.findOne({email});
         if(p)
-            return res.status(404).json({msg:"already registered"});
+            return res.status(404).json({msg:"already registered",found:false});
         const patient=await new Patient({
             name,
             phone,email,password,age,gender
         });
      await patient.save();
-     res.json({msg:"registered successfully"});
+     res.json({msg:"registered successfully",patientId:patient._id,found:true});
 }
 catch(err)
 {
@@ -42,7 +40,9 @@ async function getPatientById(req,res){
     try{
     const id=req.params.id;
     const patient=await Patient.findById(id);
-        res.json(patient);
+    if(!patient)
+            return res.status(404).json({found:false,msg:"not found"});
+    res.json({patient,found:true});
     }
     catch(error)
     {
@@ -53,7 +53,9 @@ async function updatePatient(req,res){
       try{
     const id=req.params.id;
     const patient=await Patient.findByIdAndUpdate(id,req.body);
-        res.json(patient);
+    if(!patient)
+            return res.status(404).json({found:false,msg:"not found"});
+    res.json({patient,found:true});
     }
     catch(error)
     {
@@ -62,22 +64,19 @@ async function updatePatient(req,res){
 }
 async function deletePatient(req, res) {
   try {
-
     const id = req.params.id;
-    console.log(id);
     const pa = await Patient.findById(id);
 console.log(pa);
     const patient = await Patient.findByIdAndDelete(id);
-
      if (!patient) {
        return res.status(404).json({
-         message: "Patient not found"
+         message: "Patient not found",found:false
        });
      }
 
     res.json({
       message: "Patient deleted successfully",
-      deletedPatient: patient
+      deletedPatient: patient,found:true
     });
 
   } catch (error) {
@@ -86,21 +85,12 @@ console.log(pa);
     });
   }
 }
-
-const Appointment = require("../models/Appointment");
-const Queue = require("../models/Queue");
-const Payment = require("../models/Payment");
-const QRCode = require("qrcode");
-
 async function bookAppointment(req, res) {
     try {
         const { patientId, doctorId, departmentId, paymentId } = req.body;
         const payment = await Payment.findById(paymentId);
         if (!payment || payment.status !== "PAID") {
-            return res.status(402).json({
-                message: "Payment required before booking appointment"
-            });
-        }
+            return res.status(402).json({message: "Payment required before booking appointment",found:false});}
         const today = new Date();
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
         const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
@@ -109,7 +99,7 @@ async function bookAppointment(req, res) {
             Date: { $gte: startOfDay, $lt: endOfDay } 
         });
         if (!queue) {
-            return res.status(404).json({ msg: "Queue not found for today" });
+            return res.status(404).json({ msg: "Queue not found for today" ,found:false});
         }
         const tokenNumber = queue.waiting.length + 1;
         const appointment = new Appointment({
@@ -137,9 +127,8 @@ async function bookAppointment(req, res) {
             msg: "Appointment booked successfully",
             tokenNumber,
             qrCode: qrCodeImage,
-            appointment
+            appId:appointment._id
         });
-
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: err.message });
@@ -151,13 +140,13 @@ async function removeAppointment(req,res){
         const app=await Appointment.findById(appointmentId)
         if(!app)
         {
-            res.status(500).json({err:"appointment not found"});
+            res.status(500).json({err:"appointment not found",found:false});
         }
         const queueId= app.queueId;
         const payment=await Payment.findById(app.paymentId);
         if(!payment)
         {
-            res.json({msg:"failed"});
+            res.json({msg:"failed",found:false});
         }
         payment.status="REFUNDED";
         await Queue.updateOne({_id:queueId},{
@@ -167,7 +156,7 @@ async function removeAppointment(req,res){
         await payment.save();
         app.status="CANCELLED";
         await app.save();
-        res.json({msg:"deleted successfully"});
+        res.json({msg:"deleted successfully",appId:app._id,found:true});
     }
     catch(err)
     {
@@ -179,27 +168,25 @@ async function getPosition(req, res)
     try
     {
         const appId = req.params.appId;
-
         const app = await Appointment.findById(appId);
         if(!app)
-            return res.status(404).json({err:"appointment not found"});
-
+            return res.status(404).json({err:"appointment not found",found:false});
         const q = await Queue.findById(app.queueId);
         if(!q)
-            return res.status(404).json({error:"queue invalid for the corresponding appId in the db"});
-
+            return res.status(404).json({error:"queue invalid for the corresponding appId in the db",found:false});
         if(q.currentPatient && q.currentPatient.toString() === appId)
-            return res.json({appId,currentPatient:true,position:0});
+            return res.json({appId,currentPatient:true,position:0,found:true});
 
         const idx = q.waiting.findIndex((i)=>i.toString()===appId);
         if(idx!==-1)
-            return res.json({appId,currentPatient:false,position:idx+1,waitingPatient:true});
+            return res.json({appId,currentPatient:false,position:idx+1,waitingPatient:true,found:true});
 
         const idx1 = q.skipped.findIndex((i)=>i.toString()===appId);
         if(idx1!==-1)
-            return res.json({appId,currentPatient:false,position:idx1+1,skippedPatient:true});
+            return res.json({appId,currentPatient:false,position:idx1+1,skippedPatient:true,found:true});
 
-        return res.status(404).json({error:"cant able to find the appointment in the queue"});
+        return res.status(404).json({error:"cant able to find the appointment in the queue",found:false
+        });
     }
     catch(err)
     {
@@ -211,11 +198,11 @@ async function getQrCode(req,res)
     const appId=req.params.appId;
     const app=await Appointment.findById(appId);
     if(!app)
-            return res.status(400).json({msg:"queue not found"});
+            return res.status(400).json({msg:"queue not found",found:false});
     const qrString=app.qrCode;
     if(qrString=="")
-            return res.json({qrCode:false});
-    res.json({qrCode:true,qr:qrString});
+            return res.json({qrCode:false,found:false});
+    res.json({qrCode:true,qr:qrString,found:true});
 }
 async function addRecord(req,res)
 {
@@ -224,10 +211,10 @@ async function addRecord(req,res)
         const {pId,fileUrl}=req.body;
         const p=await Patient.findById(pId);
         if(!p)
-            return res.status(404).json({msg:"patient not found"});
+            return res.status(404).json({msg:"patient not found",found:false});
         p.reports.push({fileUrl});
         await p.save();
-        res.json({msg:"record added successfully",fileUrl});
+        res.json({msg:"record added successfully",fileUrl,found:true});
     }
     catch(err)
     {
@@ -241,14 +228,14 @@ async function getTodayReports(req,res)
         const pId=req.params.pId;
         const p=await Patient.findById(pId);
         if(!p)
-            return res.status(404).json({msg:"patient not found"});
+            return res.status(404).json({msg:"patient not found",found:false});
         const today=new Date();
         const startOfDay=new Date(today.getFullYear(),today.getMonth(),today.getDate());
         const endOfDay=new Date(today.getFullYear(),today.getMonth(),today.getDate()+1);
         const reports=p.reports.filter((r)=>
             r.uploadedAt>=startOfDay && r.uploadedAt<endOfDay
         );
-        res.json({patientId:pId,todayReports:reports});
+        res.json({patientId:pId,todayReports:reports,found:true});
     }
     catch(err)
     {
@@ -261,9 +248,9 @@ async function getReports(req,res)
  {   const pId=req.params.pId;
     const p=await Patient.findById(pId);
     if(!p)
-        return res.status(404).json({msg:"patient not found"});
+        return res.status(404).json({msg:"patient not found",found:false});
     const records=p.reports;
-    res.json({reports:records});
+    res.json({reports:records,found:true});
 }
 catch(err)
 {
@@ -277,18 +264,16 @@ async function getBookings(req,res)
         const app = await Appointment.find({ patientId: pId });
         if(app.length === 0)
         {
-            return res.json({msg:"no appointments before"});
+            return res.json({msg:"no appointments before",found:false});
         }
         const app1 = app.map(a => ({appointmentId: a._id,status: a.status}));
-        res.json({records:app1});
+        res.json({records:app1,found:true});
     }
     catch(err)
     {
         res.status(500).json({error:err.message});
     }
 }
-const Appointment=require("../models/Appointment");
-
 async function getPatientHistory(req,res)
 {
     try{
@@ -299,7 +284,7 @@ async function getPatientHistory(req,res)
     .populate("paymentId","amount status")
     .sort({createdAt:-1});
     if(!history || history.length===0)
-        return res.status(404).json({msg:"no booking history found"});
+        return res.status(404).json({msg:"no booking history found",found:false});
     res.status(200).json({
         count:history.length,
         bookings:history
@@ -347,7 +332,7 @@ async function getLiveQueue(req,res)
         }
     });
     if(!q)
-        return res.status(404).json({msg:"today queue not found"});
+        return res.status(404).json({msg:"today queue not found",found:false});
     const waitingCount=q.waiting.length;
     const skippedCount=q.skipped.length;
     const avgConsultTime=5;
@@ -357,7 +342,8 @@ async function getLiveQueue(req,res)
         currentPatient:q.currentPatient,
         waitingCount:waitingCount,
         skippedCount:skippedCount,
-        estimatedWait:estimatedWait+" minutes"
+        estimatedWait:estimatedWait+" minutes",
+        found:true
     });
     }                                                                                             
     catch(err)
@@ -385,16 +371,16 @@ async function rejoinQueue(req,res)
             $lt:endOfDay
         }});
     if(!q)
-        return res.status(404).json({msg:"appointment not found in skipped queue"});
+        return res.status(404).json({msg:"appointment not found in skipped queue",found:false});
     const idx=q.skipped.findIndex(
         i=>i.toString()===appId
     );
     if(idx===-1)
-        return res.status(400).json({msg:"appointment not in skipped queue"});
+        return res.status(400).json({msg:"appointment not in skipped queue",found:false});
     const [removed]=q.skipped.splice(idx,1);
     const app=await Appointment.findById(appId);
     if(!app)
-        return res.status(404).json({msg:"appointment not found"});
+        return res.status(404).json({msg:"appointment not found",found:false});
     const bookedTime=app.bookedAt;
     let insertIndex=q.waiting.length;
     for(let i=0;i<q.waiting.length;i++)  
@@ -410,7 +396,8 @@ async function rejoinQueue(req,res)
     await q.save();
     res.status(200).json({
         msg:"patient rejoined queue based on booking time",
-        position:insertIndex+1
+        position:insertIndex+1,
+        found:true
     });
     }
     catch(err)
@@ -422,9 +409,9 @@ async function nextPatient(req, res) {
     try {
         const queueId = req.params.queueId;
         const q = await Queue.findById(queueId);
-        if (!q) return res.status(404).json({ msg: "Queue not found" });
+        if (!q) return res.status(404).json({ msg: "Queue not found",found:false});
         if (q.waiting.length === 0)
-            return res.status(400).json({ msg: "No patients in waiting queue" });
+            return res.status(400).json({ msg: "No patients in waiting queue",found:false});
         const nextAppId = q.waiting.shift(); // remove first
         q.currentAppointment = nextAppId;
         var d=q.doctorId;
@@ -437,7 +424,8 @@ async function nextPatient(req, res) {
         await q.save();
         res.status(200).json({
             msg: "Moved to next patient",
-            appointmentId: nextAppId
+            appointmentId: nextAppId,
+            found:true
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -447,7 +435,7 @@ async function skipAppointment(req, res) {
     try {
         const appId = req.params.appointmentId;
         const q = await Queue.findOne({ waiting: appId });
-        if (!q) return res.status(404).json({ msg: "Appointment not found in waiting queue" });
+        if (!q) return res.status(404).json({ msg: "Appointment not found in waiting queue",found:false });
         const idx = q.waiting.findIndex(id => id.toString() === appId);
         const [removed] = q.waiting.splice(idx, 1);
         q.skipped.push(removed);
@@ -458,7 +446,8 @@ async function skipAppointment(req, res) {
         res.status(200).json({
             msg: "Appointment skipped",
             appointmentId: removed,
-            skippedPosition: q.skipped.length
+            skippedPosition: q.skipped.length,
+            found:true
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -471,9 +460,9 @@ async function getAppointmentsByPatient(req, res) {
             .sort({ bookedAt: 1 }); 
 
         if (!appointments.length)
-            return res.status(404).json({ msg: "No appointments found for this patient" });
+            return res.status(404).json({ msg: "No appointments found for this patient" ,found:false});
 
-        res.status(200).json(appointments);
+        res.status(200).json({appointments,found:true});
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -485,9 +474,9 @@ async function getAppointment(req, res) {
             .populate("patient", "name phone") 
             .populate("doctor", "name"); 
         if (!appointment)
-            return res.status(404).json({ msg: "Appointment not found" });
+            return res.status(404).json({ msg: "Appointment not found",found:false });
 
-        res.status(200).json(appointment);
+        res.status(200).json({appointment,found:true});
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -497,7 +486,7 @@ async function getAppointmentQR(req, res) {
         const appId = req.params.appointmentId;
         const appointment = await Appointment.findById(appId);
         if (!appointment)
-            return res.status(404).json({ msg: "Appointment not found" });
+            return res.status(404).json({ msg: "Appointment not found",found:false });
         const qrData = await QRCode.toDataURL(JSON.stringify({
             appointmentId: appointment._id,
             patientId: appointment.patient,
@@ -505,7 +494,8 @@ async function getAppointmentQR(req, res) {
         }));
         res.status(200).json({
             appointmentId: appId,
-            qr: qrData
+            qr: qrData,
+            found:true 
         });
     } catch (err) {
         res.status(500).json({ error: err.message });

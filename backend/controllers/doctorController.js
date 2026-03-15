@@ -6,10 +6,10 @@ async function addDoctor(req,res)
        const {name,id,phone,email,password,age,gender,hospitalId,departmentId}=req.body;
            const d=await Doctor.findOne({id});
            if(d)
-               return res.status(404).json({msg:"already exists"});
+               return res.status(404).json({msg:"already exists",already:true});
            const doctor=new Doctor({name,id,phone,email,password,age,gender,hospitalId,departmentId});
         await doctor.save();
-        res.json({msg:"registered succesfully"});
+        res.json({msg:"registered succesfully",already:false});
    }
    catch(err)
    {
@@ -23,9 +23,9 @@ async function updateDoctor(req,res)
        const {name,phone,email,password,age,gender}=req.body;
         const d=await Doctor.findOne({id});
         if(!d)
-               return res.status(404).json({msg:"not exists"});
+               return res.status(404).json({msg:"not exists",found:false});
         await Doctor.findOneAndUpdate({id},{name,phone,email,password,age,gender});
-        res.json({msg:"updated succesfully"});
+        res.json({msg:"updated succesfully",found:true});
    }
    catch(err)
    {
@@ -38,9 +38,9 @@ async function deleteDoctor(req,res)
         const id=req.params.did;
          const d=await Doctor.findOne({id});
          if(!d)
-                return res.status(404).json({msg:"not exists"});
+                return res.status(404).json({msg:"not exists",found:false});
         await Doctor.findOneAndDelete({id});  
-        res.json({msg:"successfully deleted"});
+        res.json({msg:"successfully deleted",found:true});
     }
     catch(err)
     {
@@ -53,10 +53,11 @@ async function getDoctorsByDept(req,res)
     const deptId=req.params.deptId;
     const doctors=await Doctor.find({departmentId:deptId});
     if(!doctors || doctors.length===0)
-        return res.status(404).json({msg:"no doctors found in this department"});
+        return res.status(404).json({msg:"no doctors found in this department",found:false});
     res.status(200).json({
         count:doctors.length,
-        doctors
+        doctors,
+        found:true
     });
     }
     catch(err)
@@ -71,10 +72,10 @@ async function setCapacity(req,res)
     const {doctorId,capacity}=req.body;
     var d=await Doctor.findById(doctorId);
     if(!d)
-        return res.status(404).json({err:"doctor not found"});
+        return res.status(404).json({err:"doctor not found",found:false});
     d.capacity=capacity;
     await d.save();
-    res.json({doctorId,msg:"updated the capacity succcessfully"});
+    res.json({doctorId,msg:"updated the capacity succcessfully",found:true});
 }
 catch(err)
 {
@@ -88,7 +89,7 @@ async function updateDoctorStatus(req,res)
     const {status}=req.body;
     const doctor=await Doctor.findById(doctorId);
     if(!doctor)
-        return res.status(404).json({msg:"doctor not found"});
+        return res.status(404).json({msg:"doctor not found",found:false});
     doctor.status=status;
     await doctor.save();
     const today=new Date();
@@ -120,7 +121,7 @@ async function updateDoctorStatus(req,res)
 
         await queue.save();
     }
-    res.json({msg:"doctor status updated",doctorStatus:status,queueStatus:queue?queue.status:null});
+    res.json({msg:"doctor status updated",doctorStatus:status,queueStatus:queue?queue.status:null,found:true});
     }
     catch(err)
     {
@@ -134,8 +135,8 @@ async function getStatusAndCapacity(req,res)
     const doctorId=req.params.doctorId;
     const d=await Doctor.findById(doctorId);
     if(!d)
-        return res.status(404).json({msg:"not found"});
-    res.json({status:d.status,capacity:d.capacity});
+        return res.status(404).json({msg:"not found",found:false});
+    res.json({status:d.status,capacity:d.capacity,found:true});
 }
 catch(err)
 {
@@ -148,7 +149,7 @@ async function createQueue(req,res)
         const {doctorId,staffId,capacity}=req.body;
         var d=await Doctor.findById(doctorId);
         if(!d)
-            return res.status(404).json({msg:"doctor not found"});
+            return res.status(404).json({msg:"doctor not found",found:false});
         const today=new Date();
         const startOfDay=new Date(
             today.getFullYear(),
@@ -163,10 +164,10 @@ async function createQueue(req,res)
         var qexist=await Queue.findOne({
             doctorId:doctorId,createdAt:{$gte:startOfDay,$lt:endOfDay}});
         if(qexist)
-            return res.status(400).json({msg:"queue already created today"});
+            return res.status(400).json({msg:"queue already created today",found:false});
         var s=await Staff.findById(staffId);
         if(!s)
-            return res.status(404).json({msg:"staff not found"});
+            return res.status(404).json({msg:"staff not found",found:false});
         var already=await StaffAssignment.findOne({
             staffId:staffId,
             createdAt:{
@@ -175,7 +176,7 @@ async function createQueue(req,res)
             }
         });
         if(already)
-            return res.status(400).json({msg:"staff already assigned today"});
+            return res.status(400).json({msg:"staff already assigned today",found:false});
         d.capacity=capacity;
         d.status="available";
         d.schedule.push({date:Date.now(),slots:capacity});
@@ -195,7 +196,7 @@ async function createQueue(req,res)
             queueId:q._id
         });
         await sa.save();
-        res.status(201).json({msg:"queue created successfully",queueId:q._id});
+        res.status(201).json({msg:"queue created successfully",queueId:q._id,found:true});
     }
     catch(err)
     {
@@ -208,14 +209,14 @@ async function markAsComplete(req,res)
     const queueId=req.params.queueId;
     const q=await Queue.find(queueId);
     if(!q)  
-        return res.status.json({found:false,msg:"queue not found"});
+        return res.status.json({found:false,msg:"queue not found",found:false});
     q.currentPatient=null;
     const appId=q.appointmentId;
     const a=await Appointment.findById(appId);
     a.status="COMPLETED";
     await q.save();
     await a.save();
-    res.json({appointmentId:appId,msg:"sucussefully marked as completed"});
+    res.json({appointmentId:appId,msg:"sucussefully marked as completed",found:true});
     }
     catch(err)
     {
@@ -232,7 +233,7 @@ async function addNotes(req,res)
         return res.status(404).json({msg:"appointment not found ",found:false})
     a.notes=notes;
     await a.save();
-    res.json({found:true,notes,appointment:a});
+    res.json({found:true,notes,appointment:a,found:true});
 }
 catch(err)
 {

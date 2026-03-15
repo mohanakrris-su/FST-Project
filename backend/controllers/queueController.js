@@ -9,9 +9,9 @@ async function getQueueIdbyDid(req,res)
     const did=req.params.did;
     const d=await Queue.findOne({doctorId:did});
     if(!d)
-        return res.status(404).json({msg:"queue is not available"});
+        return res.status(404).json({msg:"queue is not available",found:false});
     res.status(200).json({
-        queueId:d._id
+        queueId:d._id,found:true
     });
     }
     catch(err)
@@ -25,14 +25,10 @@ async function getQueueStatus(req,res)
     const q=await Queue.findById(qid);
     if(!q)
     {
-        return res.status(404).json({msg:"queue not found "});
+        return res.status(404).json({msg:"queue not found ",found:false});
     }
-    res.json({queue:q});
+    res.json({queue:q,found:true});
 }
-const Queue=require("../models/Queue");
-const StaffAssignment = require("../models/StaffAssignment");
-const { getLiveQueue } = require("./patientController");
-
 async function verifyPatient(req,res)
 {
     try{
@@ -40,7 +36,7 @@ async function verifyPatient(req,res)
     const appointmentId=req.params.appointmentId;
     const q=await Queue.findById(queueId);
     if(!q)
-        return res.status(404).json({msg:"queue not found"});
+        return res.status(404).json({msg:"queue not found",found:false});
     const idx=q.waiting.findIndex(
         i=>i.toString()===appointmentId
     );
@@ -62,11 +58,11 @@ async function insertPatient(req,res)
     const {appointmentId,position}=req.body;
     const q=await Queue.findById(queueId);
     if(!q)
-        return res.status(404).json({msg:"queue not found"});
+        return res.status(404).json({msg:"queue not found",found:false});
     const pos=Math.max(0,Math.min(position,q.waiting.length));
     q.waiting.splice(pos,0,appointmentId);
     await q.save();
-    res.json({msg:"patient inserted", queue:q.waiting});
+    res.json({msg:"patient inserted", queue:q.waiting,found:true});
     }
     catch(err)
     {
@@ -80,10 +76,10 @@ async function reorderQueue(req,res)
     const {newOrder}=req.body;
     const q=await Queue.findById(queueId);
     if(!q)
-        return res.status(404).json({msg:"queue not found"});
+        return res.status(404).json({msg:"queue not found",found:false});
     q.waiting=newOrder;
     await q.save();
-    res.json({msg:"queue reordered"});
+    res.json({msg:"queue reordered",found:false});
     }
     catch(err)
     {
@@ -96,10 +92,10 @@ async function pauseQueue(req,res)
     const queueId=req.params.queueId;
     const q=await Queue.findById(queueId);
     if(!q)
-        return res.status(404).json({msg:"queue not found"});
+        return res.status(404).json({msg:"queue not found",found:false});
     q.status="PAUSED";
     await q.save();
-    res.json({msg:"queue paused"});
+    res.json({msg:"queue paused",found:true});
     }
     catch(err)
     {
@@ -142,8 +138,8 @@ async function viewCurrentPatientByqueueId(req,res)
         const queueId=req.params.queueId;
         const queue=await Queue.findById(queueId);
         if(!queue)
-                return res.status(404).json({msg:'not found'});
-        res.json({currentPatient:q.currentPatient});
+                return res.status(404).json({msg:"not found",found:false});
+        res.json({currentPatient:q.currentPatient,found:true});
 }
 catch(err)
 {
@@ -173,15 +169,15 @@ async function viewCurrentPatientBydoctorId(req,res)
                 }
             });
         if(!queue)
-                return res.status(404).json({msg:'not found'});
-        res.json({currentPatient:q.currentPatient});
+                return res.status(404).json({msg:'not found',found:false});
+        res.json({currentPatient:q.currentPatient,found:true});
     }
     catch(err)
     {
         res.status(500).json({error:err});
     }
 }
-module.exports={getQueueIdbyDid,getQueueStatus,getLiveQueue,getAssignedQueues,viewCurrentPatientBydoctorId,viewCurrentPatientByqueueId,resumeQueue,pauseQueue,reorderQueue,insertPatient,verifyPatient};
+module.exports={getQueueIdbyDid,getQueueStatus,getAssignedQueues,viewCurrentPatientBydoctorId,viewCurrentPatientByqueueId,resumeQueue,pauseQueue,reorderQueue,insertPatient,verifyPatient};
 
 
 

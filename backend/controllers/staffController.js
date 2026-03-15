@@ -24,9 +24,9 @@ async function updateStaff(req,res)
        const {name,phone,email,password,age,gender}=req.body;
         const s=await Staff.findOne({staffId});
         if(!s)
-               return res.status(404).json({msg:"not exists"});
+               return res.status(404).json({msg:"not exists",found:false});
         await Staff.findOneAndUpdate({staffId},{name,phone,email,password,age,gender});
-        res.json({msg:"updated succesfully"});
+        res.json({msg:"updated succesfully",found:true});
    }
    catch(err)
    {
@@ -39,9 +39,9 @@ async function deleteStaff(req,res)
         const staffId=req.params.sid;
          const s=await Staff.findOne({staffId});
          if(!s)
-                return res.status(404).json({msg:"not exists"});
+                return res.status(404).json({msg:"not exists",found:false});
         await Staff.findOneAndDelete({staffId});  
-        res.json({msg:"successfully deleted"});
+        res.json({msg:"successfully deleted",found:true});
     }
     catch(err)
     {
