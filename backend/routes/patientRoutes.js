@@ -1,7 +1,8 @@
 const exp=require("../controllers/patientController.js");
 const { makePayment, createOrder, getPayment } = require("../controllers/paymentController.js");
-const { viewCurrentPatientByqueueId, viewCurrentPatientBydoctorId } = require("../controllers/queueController.js");
+const { viewCurrentPatientByqueueId, viewCurrentPatientBydoctorId, getQueueIdbyDid } = require("../controllers/queueController.js");
 const route=require('express').Router();
+route.post("/registerPatient",exp.registerPatient);
 route.get("/getPatients",exp.getPatients)
 route.get("/getPatientById/:id",exp.getPatientById)
 route.post("/updatePatients/:id",exp.updatePatient)
@@ -25,7 +26,8 @@ route.get("/skipAppointment/:appointmentId",exp.skipAppointment);
 route.get("/getAppointments/patient/:patientId",exp.getAppointmentsByPatient);
 route.get("/getAppointment/:appointmentId",exp.getAppointment);
 route.get("/getAppointmentQr/:appointmentId",exp.getAppointmentQR);
+route.get("/getQueuesByDId/:did",getQueueIdbyDid);
 route.get("/getpaymentById/:paymentId",getPayment);
 route.get("/viewCurrentPatient/QueueId/:queueId",viewCurrentPatientByqueueId);
-route.get("/viewCurrentPatient/DoctorId/:doctorId",viewCurrentPatientBydoctorId)
+route.get("/viewCurrentPatient/DoctorId/:doctorId",viewCurrentPatientBydoctorId);
 module.exports=route;

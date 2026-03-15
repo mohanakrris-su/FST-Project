@@ -1,5 +1,6 @@
 const Patient=require("../models/Patient.js");
 const Queue = require("../models/Queue.js");
+const Doctor=require("../models/Doctor.js")
 const Appointment = require("../models/Appointment.js");
 const Payment = require("../models/Payment.js");
 const QRCode = require("qrcode");
@@ -91,13 +92,11 @@ async function bookAppointment(req, res) {
         const payment = await Payment.findById(paymentId);
         if (!payment || payment.status !== "PAID") {
             return res.status(402).json({message: "Payment required before booking appointment",found:false});}
-        const today = new Date();
-        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+        const today = new Date().toISOString().split("T")[0];
+    
         let queue = await Queue.findOne({
             doctorId,
-            Date: { $gte: startOfDay, $lt: endOfDay } 
-        });
+            date: today })
         if (!queue) {
             return res.status(404).json({ msg: "Queue not found for today" ,found:false});
         }
@@ -313,23 +312,10 @@ async function getLiveQueue(req,res)
 {
     try{
     const doctorId=req.params.doctorId;
-    const today=new Date();
-    const startOfDay=new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate()
-    );
-    const endOfDay=new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate()+1
-    );
+    const today=new Date().toISOString().split("T")[0];
     const q=await Queue.findOne({
         doctorId:doctorId,
-        Date:{
-            $gte:startOfDay,
-            $lt:endOfDay
-        }
+        date:today
     });
     if(!q)
         return res.status(404).json({msg:"today queue not found",found:false});
@@ -353,57 +339,61 @@ async function getLiveQueue(req,res)
 }
 async function rejoinQueue(req,res)
 {
-    try{
-    const appId=req.params.appointmentId;
-      const today=new Date();
-    const startOfDay=new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate()
-    );
-    const endOfDay=new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate()+1
-    );
-    const q=await Queue.findOne({skipped:appId,Date:{
-            $gte:startOfDay,
-            $lt:endOfDay
-        }});
-    if(!q)
-        return res.status(404).json({msg:"appointment not found in skipped queue",found:false});
-    const idx=q.skipped.findIndex(
-        i=>i.toString()===appId
-    );
-    if(idx===-1)
-        return res.status(400).json({msg:"appointment not in skipped queue",found:false});
-    const [removed]=q.skipped.splice(idx,1);
-    const app=await Appointment.findById(appId);
-    if(!app)
-        return res.status(404).json({msg:"appointment not found",found:false});
-    const bookedTime=app.bookedAt;
-    let insertIndex=q.waiting.length;
-    for(let i=0;i<q.waiting.length;i++)  
-    {
-        const wApp=await Appointment.findById(q.waiting[i]);
-        if(bookedTime < wApp.bookedAt)
-        {
-            insertIndex=i;
-            break;
-        }
-    }
-    q.waiting.splice(insertIndex,0,removed);
-    await q.save();
-    res.status(200).json({
-        msg:"patient rejoined queue based on booking time",
-        position:insertIndex+1,
-        found:true
-    });
-    }
-    catch(err)
-    {
-        res.status(500).json({error:err.message});
-    }
+try{
+
+const mongoose = require("mongoose");
+const appId = new mongoose.Types.ObjectId(req.params.appointmentId);
+
+const today = new Date().toISOString().split("T")[0];
+
+const q = await Queue.findOne({
+    skipped: appId,
+    date: today
+}).populate("waiting");
+
+if(!q)
+return res.status(404).json({msg:"appointment not found in skipped queue",found:false});
+
+const idx = q.skipped.findIndex(i => i.toString() === appId.toString());
+
+if(idx === -1)
+return res.status(400).json({msg:"appointment not in skipped queue",found:false});
+
+const [removed] = q.skipped.splice(idx,1);
+
+const app = await Appointment.findById(appId);
+
+if(!app)
+return res.status(404).json({msg:"appointment not found",found:false});
+
+const bookedTime = app.bookedAt;
+
+let insertIndex = q.waiting.length;
+
+for(let i=0;i<q.waiting.length;i++)
+{
+if(bookedTime < q.waiting[i].bookedAt)
+{
+insertIndex = i;
+break;
+}
+}
+
+q.waiting.splice(insertIndex,0,removed);
+
+await q.save();
+
+res.status(200).json({
+msg:"patient rejoined queue based on booking time",
+position: insertIndex+1,
+found:true
+});
+
+}
+catch(err)
+{
+res.status(500).json({error:err.message});
+}
 }
 async function nextPatient(req, res) {
     try {
@@ -413,7 +403,7 @@ async function nextPatient(req, res) {
         if (q.waiting.length === 0)
             return res.status(400).json({ msg: "No patients in waiting queue",found:false});
         const nextAppId = q.waiting.shift(); // remove first
-        q.currentAppointment = nextAppId;
+        q.currentPatient = nextAppId;
         var d=q.doctorId;
         var doctor=await Doctor.findById(d);
         doctor.status="in_room";
@@ -432,34 +422,63 @@ async function nextPatient(req, res) {
     }
 }
 async function skipAppointment(req, res) {
-    try {
-        const appId = req.params.appointmentId;
-        const q = await Queue.findOne({ waiting: appId });
-        if (!q) return res.status(404).json({ msg: "Appointment not found in waiting queue",found:false });
-        const idx = q.waiting.findIndex(id => id.toString() === appId);
-        const [removed] = q.waiting.splice(idx, 1);
-        q.skipped.push(removed);
-        const a=await Appointment.findById(removed);
-        a.status="SKIPPED";
-        await a.save();
-        await q.save();
-        res.status(200).json({
-            msg: "Appointment skipped",
-            appointmentId: removed,
-            skippedPosition: q.skipped.length,
-            found:true
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+try {
+
+const mongoose = require("mongoose");
+const appId = new mongoose.Types.ObjectId(req.params.appointmentId);
+
+const q = await Queue.findOne({ waiting: appId });
+
+if (!q)
+return res.status(404).json({
+msg: "Appointment not found in waiting queue",
+found:false
+});
+
+const idx = q.waiting.findIndex(id => id.toString() === appId.toString());
+
+if(idx === -1)
+return res.status(400).json({
+msg:"appointment not in waiting queue",
+found:false
+});
+
+const [removed] = q.waiting.splice(idx, 1);
+
+q.skipped.push(removed);
+
+const a = await Appointment.findById(removed);
+
+if(!a)
+return res.status(404).json({
+msg:"appointment not found",
+found:false
+});
+
+a.status="SKIPPED";
+
+await a.save();
+await q.save();
+
+res.status(200).json({
+msg: "Appointment skipped",
+appointmentId: removed,
+skippedPosition: q.skipped.length,
+found:true
+});
+
+}
+catch (err) {
+res.status(500).json({ error: err.message });
+}
 }
 async function getAppointmentsByPatient(req, res) {
     try {
         const patientId = req.params.patientId;
-        const appointments = await Appointment.find({ patient: patientId })
+        const appointments = await Appointment.find({ patientId: patientId })
             .sort({ bookedAt: 1 }); 
 
-        if (!appointments.length)
+        if (appointments.length==0)
             return res.status(404).json({ msg: "No appointments found for this patient" ,found:false});
 
         res.status(200).json({appointments,found:true});
@@ -471,8 +490,8 @@ async function getAppointment(req, res) {
     try {
         const appId = req.params.appointmentId;
         const appointment = await Appointment.findById(appId)
-            .populate("patient", "name phone") 
-            .populate("doctor", "name"); 
+            .populate("patientId", "name phone") 
+            .populate("doctorId", "name"); 
         if (!appointment)
             return res.status(404).json({ msg: "Appointment not found",found:false });
 
@@ -501,4 +520,4 @@ async function getAppointmentQR(req, res) {
         res.status(500).json({ error: err.message });
     }
 }
-module.exports={getPatientById,getPatients,deletePatient,bookAppointment,removeAppointment,updatePatient,getPosition,getQrCode,getTodayReports,getReports,addRecord,getBookings,getPosition,getPatientHistory,sms,getLiveQueue,rejoinQueue,nextPatient,skipAppointment,getAppointmentsByPatient,getAppointment,getAppointmentQR};
+module.exports={registerPatient,getPatientById,getPatients,deletePatient,bookAppointment,removeAppointment,updatePatient,getPosition,getQrCode,getTodayReports,getReports,addRecord,getBookings,getPosition,getPatientHistory,sms,getLiveQueue,rejoinQueue,nextPatient,skipAppointment,getAppointmentsByPatient,getAppointment,getAppointmentQR};

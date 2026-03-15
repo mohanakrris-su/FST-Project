@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
-
+function getTodayString() {
+  return new Date().toISOString().split("T")[0];
+}
 const staffAssignmentSchema = new mongoose.Schema({
   staffId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -38,8 +40,8 @@ const staffAssignmentSchema = new mongoose.Schema({
   },
 
   assignedAt: {
-    type: Date,
-    default: Date.now
+    type: String,
+    default: getTodayString,
   },
 
   active: {

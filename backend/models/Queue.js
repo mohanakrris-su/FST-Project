@@ -57,5 +57,4 @@ const queueSchema = new mongoose.Schema({
     default: Date.now
   }
 });
-
 module.exports = mongoose.model("Queue", queueSchema);

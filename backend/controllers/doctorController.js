@@ -1,5 +1,8 @@
 const Appointment = require("../models/Appointment");
 const Doctor=require("../models/Doctor");
+const Queue=require("../models/Queue");
+const Staff=require("../models/staff");
+const StaffAssignment=require("../models/StaffAssignment");
 async function addDoctor(req,res)
 {
       try{
@@ -45,7 +48,7 @@ async function getDoctors(req,res){
 async function getDoctorById(req,res){
     try{
     const id=req.params.id;
-    const d=await Doctor.findById(id);
+    const d=await Doctor.findOne({id});
     if(!d)
             return res.status(404).json({found:false,msg:"not found"});
     res.json({d,found:true});
@@ -93,7 +96,9 @@ async function setCapacity(req,res)
     try
  {
     const {doctorId,capacity}=req.body;
-    var d=await Doctor.findById(doctorId);
+     const mongoose = require("mongoose");
+    const doctorId1 = new mongoose.Types.ObjectId(doctorId);
+    var d=await Doctor.findById(doctorId1);
     if(!d)
         return res.status(404).json({err:"doctor not found",found:false});
     d.capacity=capacity;
@@ -108,39 +113,28 @@ catch(err)
 async function updateDoctorStatus(req,res)
 {
     try{
-    const doctorId=req.params.doctorId;
+    //const doctorId=req.params.doctorId;
+    const mongoose = require("mongoose");
+const doctorId = new mongoose.Types.ObjectId(req.params.doctorId);
+    console.log(doctorId);
     const {status}=req.body;
     const doctor=await Doctor.findById(doctorId);
     if(!doctor)
         return res.status(404).json({msg:"doctor not found",found:false});
     doctor.status=status;
     await doctor.save();
-    const today=new Date();
-    const startOfDay=new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate()
-    );
-    const endOfDay=new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate()+1
-    );
+    const today=new Date().toISOString().split("T")[0];
     const queue=await Queue.findOne({
         doctorId:doctorId,
-        createdAt:{
-            $gte:startOfDay,
-            $lt:endOfDay
-        }
-    });
+        date:today});
     if(queue)
     {
-        if(status==="BREAK")
+        if(status==="break")
             queue.status="PAUSED";
-        else if(status==="OFFLINE")
+        else if(status==="offline")
             queue.status="CLOSED";
-        else if(status==="ONLINE")
-            queue.status="OPENED"
+        else if(status==="available")
+            queue.status="OPEN"
 
         await queue.save();
     }
@@ -156,7 +150,7 @@ async function getStatusAndCapacity(req,res)
     try
  {
     const doctorId=req.params.doctorId;
-    const d=await Doctor.findById(doctorId);
+    const d=await Doctor.findOne({id:doctorId});
     if(!d)
         return res.status(404).json({msg:"not found",found:false});
     res.json({status:d.status,capacity:d.capacity,found:true});
@@ -173,19 +167,9 @@ async function createQueue(req,res)
         var d=await Doctor.findById(doctorId);
         if(!d)
             return res.status(404).json({msg:"doctor not found",found:false});
-        const today=new Date();
-        const startOfDay=new Date(
-            today.getFullYear(),
-            today.getMonth(),
-            today.getDate()
-        );
-        const endOfDay=new Date(
-            today.getFullYear(),
-            today.getMonth(),
-            today.getDate()+1
-        );
+    const today=new Date().toISOString().split("T")[0];
         var qexist=await Queue.findOne({
-            doctorId:doctorId,createdAt:{$gte:startOfDay,$lt:endOfDay}});
+            doctorId:doctorId,date:today});
         if(qexist)
             return res.status(400).json({msg:"queue already created today",found:false});
         var s=await Staff.findById(staffId);
@@ -193,11 +177,9 @@ async function createQueue(req,res)
             return res.status(404).json({msg:"staff not found",found:false});
         var already=await StaffAssignment.findOne({
             staffId:staffId,
-            createdAt:{
-                $gte:startOfDay,
-                $lt:endOfDay
-            }
+            assignedAt:today
         });
+        console.log(already);
         if(already)
             return res.status(400).json({msg:"staff already assigned today",found:false});
         d.capacity=capacity;
@@ -208,7 +190,7 @@ async function createQueue(req,res)
             hospitalId:d.hospitalId,
             departmentId:d.departmentId,
             doctorId:d._id,
-            status:"OPENED"
+            status:"OPEN"
         });
         await q.save();
         const sa=new StaffAssignment({
@@ -216,7 +198,8 @@ async function createQueue(req,res)
             doctorId:d._id,
             departmentId:d.departmentId,
             hospitalId:d.hospitalId,
-            queueId:q._id
+            queueId:q._id,
+            assignedAt:today
         });
         await sa.save();
         res.status(201).json({msg:"queue created successfully",queueId:q._id,found:true});
@@ -230,14 +213,18 @@ async function markAsComplete(req,res)
 {
     try{
     const queueId=req.params.queueId;
-    const q=await Queue.find(queueId);
+    const q=await Queue.findById(queueId);
+     console.log("6");
     if(!q)  
         return res.status.json({found:false,msg:"queue not found",found:false});
+   var  appointmentId=q.currentPatient;
     q.currentPatient=null;
-    const appId=q.appointmentId;
+    const appId=appointmentId;
     const a=await Appointment.findById(appId);
     a.status="COMPLETED";
+ console.log("2");
     await q.save();
+     console.log("3");
     await a.save();
     res.json({appointmentId:appId,msg:"sucussefully marked as completed",found:true});
     }
@@ -263,6 +250,4 @@ catch(err)
     res.status(500).json({error:err});
 }
 }
-
-
 module.exports={addDoctor,deleteDoctor,updateDoctor,getDoctorsByDept,addNotes,markAsComplete,createQueue,getStatusAndCapacity,updateDoctorStatus,setCapacity,getDoctors,getDoctorById};

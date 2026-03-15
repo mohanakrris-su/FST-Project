@@ -1,7 +1,5 @@
 const Queue=require("../models/Queue");
 const Doctor=require("../models/Doctor");
-const Queue=require("../models/Queue");
-const Doctor=require("../models/Doctor");
 
 async function getQueueIdbyDid(req,res)
 {
