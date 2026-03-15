@@ -1,6 +1,6 @@
 const exp=require("../controllers/patientController.js");
 const { makePayment, createOrder, getPayment } = require("../controllers/paymentController.js");
-const { viewCurrentPatientByqueueId, viewCurrentPatientBydoctorId, getQueueIdbyDid } = require("../controllers/queueController.js");
+const { viewCurrentPatientByqueueId, viewCurrentPatientBydoctorId, getQueueIdbyDid, getQueueStatus, verifyPatient } = require("../controllers/queueController.js");
 const route=require('express').Router();
 route.post("/registerPatient",exp.registerPatient);
 route.get("/getPatients",exp.getPatients)
@@ -27,6 +27,8 @@ route.get("/getAppointments/patient/:patientId",exp.getAppointmentsByPatient);
 route.get("/getAppointment/:appointmentId",exp.getAppointment);
 route.get("/getAppointmentQr/:appointmentId",exp.getAppointmentQR);
 route.get("/getQueuesByDId/:did",getQueueIdbyDid);
+route.get("/getQueueStatus/:queueId",getQueueStatus);
+route.get("/verifyPatient",verifyPatient);
 route.get("/getpaymentById/:paymentId",getPayment);
 route.get("/viewCurrentPatient/QueueId/:queueId",viewCurrentPatientByqueueId);
 route.get("/viewCurrentPatient/DoctorId/:doctorId",viewCurrentPatientBydoctorId);

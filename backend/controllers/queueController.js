@@ -1,6 +1,6 @@
 const Queue=require("../models/Queue");
 const Doctor=require("../models/Doctor");
-
+const StaffAssignment=require("../models/StaffAssignment");
 async function getQueueIdbyDid(req,res)
 {
     try{
@@ -147,27 +147,14 @@ async function viewCurrentPatientBydoctorId(req,res)
 {
     try{
          const doctorId=req.params.doctorId;
-            const today=new Date();
-            const startOfDay=new Date(
-                today.getFullYear(),
-                today.getMonth(),
-                today.getDate()
-            );
-            const endOfDay=new Date(
-                today.getFullYear(),
-                today.getMonth(),
-                today.getDate()+1
-            );
+            const today = new Date().toISOString().split("T")[0];
             const queue=await Queue.findOne({
                 doctorId:doctorId,
-                createdAt:{
-                    $gte:startOfDay,
-                    $lt:endOfDay
-                }
-            });
+                date:today
+    });
         if(!queue)
                 return res.status(404).json({msg:'not found',found:false});
-        res.json({currentPatient:q.currentPatient,found:true});
+        res.json({currentPatient:queue.currentPatient,found:true});
     }
     catch(err)
     {
